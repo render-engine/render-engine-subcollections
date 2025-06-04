@@ -38,6 +38,7 @@ def test_subcollection(tmp_path):
     class TestCollection(Collection):
         pages = [page1, page2, page3]
         plugins = [SubCollections]
+        SubCollections = [TestSubCollector]
 
     site.collection(TestCollection)
     site.render()
