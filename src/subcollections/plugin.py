@@ -49,16 +49,20 @@ class SubCollections:
         Create a new collection and render it.
         """
 
-        # check for subcollection attribute
-        if not hasattr(collection, "subcollection"):
-            return
+        for subcollection in getattr(collection, "subcollections", default=[]):
 
-        for subcollection_title, subcollection in collection.subcollections.items():
+            for subcollection_title, pages in subcollection.generate_subcollection():
 
-            class SubCollectorPage(Page):
-                title = subcollection_title
-                template = collection.archive_template
-                routes = [pathlib.Path(collection.url_for()).joinpath(title)]
-                pages = subcollection
+                output_path = (
+                    pathlib.Path(collection.url_for())
+                    / subcollection.__class__.__title__
+                    / subcollection_title
+                )
 
-            site.page(SubCollectorPage)
+                class SubCollectorPage(Page):
+                    title = subcollection_title
+                    template = collection.archive_template
+                    routes = [output_path]
+                    pages = pages
+
+                site._render_output(output_path, SubCollectorPage)
