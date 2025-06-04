@@ -1,3 +1,4 @@
-from .plugin import class Src/subcollections
+from .plugin import SubCollections
 
-__all__ = ["class Src/subcollections"]
+__all__ = ["SubCollections"]
+

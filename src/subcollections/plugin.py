@@ -1,58 +1,64 @@
+import pathlib
 import typing
-from render_engine.plugins import hook_impl
+from abc import ABC
+from collections import defaultdict
 
-class class Src/subcollections:
-    default_settings: {"default_setting": "default_value"}
-    
-    @hook_spec
-    def pre_build_site(
-        self,
-        site,
-        settings: dict[str, typing.Any],
-    ) -> None:
-        """Steps Prior to Building the site"""
+from render_engine import Collection, Page, Site
+from render_engine.plugins import hook_impl
+from slugify import slugify
+
+
+class SubCollector(ABC):
+    """Perhaps an Abstract Base Class to ensure that the callable that SubCollections Uses is present"""
+
+    def generate_subcollection(self, collection: Collection):
+        """The class that creates subcollections"""
         pass
-    @hook_spec
-    def post_build_site(
-        self,
-        site,
-    ) -> None:
-        """Build After Building the site"""
-        pass
-    @hook_spec
-    def render_content(
-        self,
-        page,
-        settings: dict[str, typing.Any],
-    ) -> None:
-        """
-        Augments the content of the page before it is rendered as output.
-        """
-        pass
-    @hook_spec
-    def post_render_content(
-        self,
-        page,
-        settings: dict[str : typing.Any],
-        site,
-    ) -> None:
-        """
-        Augments the content of the page before it is rendered as output.
-        """
-        pass
-    @hook_spec
-    def pre_build_collection(
-        self,
-        collection,
-        settings: dict[str, typing.Any],
-    ) -> None:
-        """Steps Prior to Building the collection"""
-        pass
-    @hook_spec
+
+
+class Tags(SubCollector):
+    def filter(self, page: Page, tag) -> bool:
+        return tag in getattr(page, "tags", [])
+
+    def generate_subcollection(
+        self, collection: Collection
+    ) -> defaultdict[str, set[Page]]:
+        """Iterate through the pages in the collection looking for tags"""
+
+        pages_by_tag = defaultdict(set)
+
+        for page in collection:
+            for tag in map(slugify, getattr(page, "tag")):
+                pages_by_tag[tag].add(page)
+
+        return pages_by_tag
+
+
+class SubCollections:
+
+    @hook_impl
     def post_build_collection(
         self,
-        site,
+        collection: Collection,
+        site: Site,
         settings: dict[str, typing.Any],
     ) -> None:
-        """Build After Building the collection"""
-        pass
+        """
+        Build After Building the collection
+
+        Create a new collection and render it.
+        """
+
+        # check for subcollection attribute
+        if not hasattr(collection, "subcollection"):
+            return
+
+        for subcollection_title, subcollection in collection.subcollections.items():
+
+            class SubCollectorPage(Page):
+                title = subcollection_title
+                template = collection.archive_template
+                routes = [pathlib.Path(collection.url_for()).joinpath(title)]
+                pages = subcollection
+
+            site.page(SubCollectorPage)
