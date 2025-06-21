@@ -1,3 +1,4 @@
+import pathlib
 from collections import defaultdict
 
 import pytest
@@ -26,23 +27,29 @@ def test_subcollection(tmp_path):
     site.output_path = output_path
 
     class TestSubCollector(SubCollector):
-        def generate_subcollection(self, collection: Collection):
-            """The class that creates subcollections"""
+        name = "last_1"
+
+        def generate_subcollection(self):
+            """This simple subcollection generator will create a value based on the last character in the page's title."""
             pages = defaultdict(set)
 
-            for page in collection:
-                pages[str(page.title[-1])].add(page)
+            for subcollection_page in self.collection:
+                pages[str(subcollection_page.title[-1])].add(subcollection_page)
 
-            return pages
+            for page_title, subpages in pages.items():
+                page = self.gen_page(page_title, subpages)
+
+                yield page
 
     class TestCollection(Collection):
         pages = [page1, page2, page3]
         plugins = [SubCollections]
-        SubCollections = [TestSubCollector]
+        has_feed = False
+        subcollections = [TestSubCollector]
 
     site.collection(TestCollection)
     site.render()
-    print(site.route_list)
 
-    assert site.route_list["TestCollection_1"]
-    assert site.route_list["TestCollection_1"].pages == [page1]
+    for path in ("1.html", "2.html", "3.html"):
+        test_path = pathlib.Path(output_path / "last_1" / path)
+        assert test_path.exists()
