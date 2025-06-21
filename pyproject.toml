@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools_scm", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-dependencies = ["render-engine >= 2024.1.2"]
+dependencies = ["render-engine >= 2025.6.1a1"]
 name = "render-engine-subcollections"
 dynamic = ["version"]
 description = "Create subcollections based on the collection"
